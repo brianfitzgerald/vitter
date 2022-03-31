@@ -1,3 +1,5 @@
+from collections import defaultdict
+from email.policy import default
 from os import walk
 import os
 from tree_sitter import Language, Parser
@@ -21,27 +23,32 @@ parser.set_language(PY_LANGUAGE)
 # For each file, parse the AST for methods and classes.
 # Get a delta of methods and classes for each commit.
 # For each AST entry generate a history.
-
-classes = {}
-
 cwd = os.getcwd()
 
 # Walk AST looking for methods associated with a class
 
-def walk_class(node):
-    if node.type == 'class_definition':
-        class_name = ''
+class FileSnapshot(object):
+
+    def __init__(self, commit) -> None:
+        self.classes = {}
+        self.commit = commit
+
+    def walk_class(self, node):
+        if node.type == 'class_definition':
+            class_name = ''
+            for child in node.children:
+                if child.type == 'identifier':
+                    class_name = child.text
+                    self.classes[class_name] = {}
+                if child.type == 'block':
+                    for grandchild in child.children:
+                        if grandchild.type == 'function_definition':
+                            func_identifier = next(filter(lambda x: x.type == 'identifier', grandchild.children)).text
+                            self.classes[class_name][func_identifier] = node
         for child in node.children:
-            if child.type == 'identifier':
-                class_name = child.text
-                classes[class_name] = {}
-            if child.type == 'block':
-                for grandchild in child.children:
-                    if grandchild.type == 'function_definition':
-                        func_identifier = next(filter(lambda x: x.type == 'identifier', grandchild.children)).text
-                        classes[class_name][func_identifier] = node
-    for child in node.children:
-        walk_class(child)
+            self.walk_class(child)
+            
+snapshots = defaultdict(list)
 
 for commit in Repository(cwd).traverse_commits():
     for m in commit.modified_files:
@@ -49,12 +56,23 @@ for commit in Repository(cwd).traverse_commits():
             source = m.source_code
             try:
                 tree = parser.parse(bytes(source, 'utf-8'))
-                walk_class(tree.root_node)
+                snapshot = FileSnapshot(commit)
+                snapshot.walk_class(tree.root_node)
+                snapshots[m.filename] = snapshot
             except Exception as e:
                 print(e)
                 continue
 
+def find_when_method_added(file, class_name, method_name):
+    for i in range(1, len(snapshots[file])):
+        methods = snapshots[file][i].classes[class_name]
+        prev_methods = snapshots[file][i-1].classes[class_name]
+        if method_name in methods and method_name not in prev_methods:
+            return snapshots[file][i].commit.hash
 
+res = find_when_method_added('test_files/bungus.py', 'Bungus', 'say_hi')
+
+print(res)
 
 
 # CLI for querying a specific class and method - find all uses and when each use was added.
