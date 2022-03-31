@@ -38,12 +38,12 @@ class FileSnapshot(object):
             class_name = ''
             for child in node.children:
                 if child.type == 'identifier':
-                    class_name = child.text
+                    class_name = child.text.decode('utf-8')
                     self.classes[class_name] = {}
                 if child.type == 'block':
                     for grandchild in child.children:
                         if grandchild.type == 'function_definition':
-                            func_identifier = next(filter(lambda x: x.type == 'identifier', grandchild.children)).text
+                            func_identifier = next(filter(lambda x: x.type == 'identifier', grandchild.children)).text.decode('utf-8')
                             self.classes[class_name][func_identifier] = node
         for child in node.children:
             self.walk_class(child)
@@ -65,12 +65,13 @@ for commit in Repository(cwd).traverse_commits():
 
 def find_when_method_added(file, class_name, method_name):
     for i in range(1, len(snapshots[file])):
+        cls = snapshots[file][i].classes
         methods = snapshots[file][i].classes[class_name]
         prev_methods = snapshots[file][i-1].classes[class_name]
         if method_name in methods and method_name not in prev_methods:
             return snapshots[file][i].commit.hash
 
-res = find_when_method_added('test_files/bungus.py', 'Bungus', 'say_hi')
+res = find_when_method_added('bungus.py', 'Bungus', 'say_no')
 
 print(res)
 
