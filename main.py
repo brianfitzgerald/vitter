@@ -1,4 +1,3 @@
-from email.policy import default
 from os import walk
 import os
 from tree_sitter import Language, Parser
