@@ -10,3 +10,11 @@ class Bingus(Bungus):
             print("I'm eating chicken breast")
         elif cut == "wing":
             print("yeehaw")
+
+
+def bingus_inspect(bingus):
+    print("I'm a bingus")
+    print("My name is {}".format(bingus.name))
+    bingus.eat_chicken("breast")
+    bingus.eat_chicken("wing")
+    bingus.say_name()
