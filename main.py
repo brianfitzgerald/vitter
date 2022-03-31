@@ -58,7 +58,7 @@ for commit in Repository(cwd).traverse_commits():
                 tree = parser.parse(bytes(source, 'utf-8'))
                 snapshot = FileSnapshot(commit)
                 snapshot.walk_class(tree.root_node)
-                snapshots[m.filename] = snapshot
+                snapshots[m.filename].append(snapshot)
             except Exception as e:
                 print(e)
                 continue

@@ -8,3 +8,6 @@ class Bungus(object):
     
     def say_hi(self):
         print("hi")
+
+    def say_no(self):
+        print("hi")
